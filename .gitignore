@@ -1,0 +1,7 @@
+/backend/config/database.local.php
+.env
+.env.*
+/storage/*
+!/storage/.gitkeep
+*.log
+.DS_Store

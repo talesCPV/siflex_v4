@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SiFlex 4.0</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section id="loginView" class="card">
+      <h1>SiFlex 4.0</h1>
+      <p class="muted">Acesso ao novo sistema</p>
+      <form id="loginForm">
+        <label>Usuário<input id="username" name="username" autocomplete="username" required></label>
+        <label>Senha<input id="password" name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Entrar</button>
+        <div id="loginMessage" class="message"></div>
+      </form>
+    </section>
+    <section id="appView" class="card hidden">
+      <div class="topbar"><h1>SiFlex 4.0</h1><button id="logoutBtn" class="secondary">Sair</button></div>
+      <p id="welcome"></p>
+      <p class="muted">Fundação da V4 carregada. Próximo passo: gerenciamento de usuários, perfis e módulos.</p>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+</body>
+</html>
