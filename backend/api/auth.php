@@ -54,8 +54,7 @@ try {
         );
         $stmt->execute([$username]);
         $user = $stmt->fetch();
-// password_hash($password, PASSWORD_DEFAULT);
-        
+
         if (!$user || $user['status'] !== 'active' || !password_verify($password, $user['password_hash'])) {
             Response::error('Usuário ou senha inválidos.', 401);
         }

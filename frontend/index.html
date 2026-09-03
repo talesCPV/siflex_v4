@@ -8,22 +8,145 @@
 </head>
 <body>
   <main class="app-shell">
-    <section id="loginView" class="card">
+    <section id="loginView" class="card login-card">
       <h1>SiFlex 4.0</h1>
       <p class="muted">Acesso ao novo sistema</p>
       <form id="loginForm">
         <label>Usuário<input id="username" name="username" autocomplete="username" required></label>
         <label>Senha<input id="password" name="password" type="password" autocomplete="current-password" required></label>
         <button type="submit">Entrar</button>
-        <div id="loginMessage" class="message"></div>
+        <div id="loginMessage" class="message" role="status" aria-live="polite"></div>
       </form>
     </section>
-    <section id="appView" class="card hidden">
-      <div class="topbar"><h1>SiFlex 4.0</h1><button id="logoutBtn" class="secondary">Sair</button></div>
-      <p id="welcome"></p>
-      <p class="muted">Fundação da V4 carregada. Próximo passo: gerenciamento de usuários, perfis e módulos.</p>
+
+    <section id="appView" class="app-window hidden">
+      <header class="topbar">
+        <div>
+          <strong>SiFlex 4.0</strong>
+          <span class="muted topbar-user" id="topbarUser"></span>
+        </div>
+        <button id="logoutBtn" class="secondary">Sair</button>
+      </header>
+
+      <div class="app-body">
+        <aside class="sidebar">
+          <button class="nav-item active" data-view="homeView">Início</button>
+          <button class="nav-item" data-view="usersView">Usuários</button>
+          <button class="nav-item" data-view="rolesView">Perfis e permissões</button>
+          <button class="nav-item disabled" type="button">Módulos</button>
+        </aside>
+
+        <section class="content">
+          <div id="homeView" class="module-view">
+            <div class="page-header">
+              <div><h1>Início</h1><p class="muted">Base administrativa do SiFlex 4.0.</p></div>
+            </div>
+            <div class="info-card">
+              <h2>Fundação carregada</h2>
+              <p>Autenticação, sessão e autorização estão funcionando. O próximo módulo implementado é o gerenciamento de usuários.</p>
+            </div>
+          </div>
+
+          <div id="usersView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Gerenciar usuários</h1><p class="muted">Crie, edite, bloqueie, inative e redefina senhas.</p></div>
+              <button id="newUserBtn" class="primary-btn">+ Novo usuário</button>
+            </div>
+
+            <div class="toolbar">
+              <input id="userSearch" type="search" placeholder="Buscar por usuário, nome ou e-mail">
+              <select id="userStatusFilter">
+                <option value="">Todos os status</option>
+                <option value="active">Ativos</option>
+                <option value="blocked">Bloqueados</option>
+                <option value="inactive">Inativos</option>
+              </select>
+              <button id="refreshUsersBtn" class="secondary">Atualizar</button>
+            </div>
+
+            <div id="usersMessage" class="message"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Usuário</th><th>Nome</th><th>E-mail</th><th>Perfis</th><th>Status</th><th>Último acesso</th><th>Ações</th></tr></thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination"><button id="prevPage" class="secondary">Anterior</button><span id="pageInfo"></span><button id="nextPage" class="secondary">Próxima</button></div>
+          </div>
+
+          <div id="rolesView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Perfis e permissões</h1><p class="muted">Defina os perfis de acesso e quais permissões cada perfil possui.</p></div>
+              <button id="newRoleBtn" class="primary-btn">+ Novo perfil</button>
+            </div>
+            <div class="toolbar">
+              <input id="roleSearch" type="search" placeholder="Buscar por código, nome ou descrição">
+              <select id="roleStatusFilter"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
+              <button id="refreshRolesBtn" class="secondary">Atualizar</button>
+            </div>
+            <div id="rolesMessage" class="message"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Código</th><th>Perfil</th><th>Descrição</th><th>Usuários</th><th>Permissões</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="rolesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
     </section>
   </main>
-  <script src="js/app.js"></script>
+
+  <div id="userModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header"><h2 id="modalTitle">Novo usuário</h2><button id="closeUserModal" class="icon-btn" type="button">×</button></div>
+      <form id="userForm">
+        <input id="userId" type="hidden">
+        <div class="form-grid">
+          <label>Usuário<input id="formUsername" required maxlength="80" autocomplete="off"></label>
+          <label>Nome de exibição<input id="formDisplayName" required maxlength="150"></label>
+          <label>E-mail<input id="formEmail" type="email" maxlength="190"></label>
+          <label>Status<select id="formStatus"><option value="active">Ativo</option><option value="blocked">Bloqueado</option><option value="inactive">Inativo</option></select></label>
+          <label id="passwordField">Senha<input id="formPassword" type="password" minlength="8" autocomplete="new-password"></label>
+        </div>
+        <fieldset><legend>Perfis de acesso</legend><div id="rolesList" class="roles-list"></div></fieldset>
+        <div id="formMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelUserBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="roleModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card role-modal-card">
+      <div class="modal-header"><h2 id="roleModalTitle">Novo perfil</h2><button id="closeRoleModal" class="icon-btn" type="button">×</button></div>
+      <form id="roleForm">
+        <input id="roleId" type="hidden">
+        <div class="form-grid">
+          <label>Código<input id="formRoleCode" required maxlength="80" autocomplete="off" placeholder="Ex.: FINANCEIRO"></label>
+          <label>Nome<input id="formRoleName" required maxlength="120"></label>
+          <label>Descrição<input id="formRoleDescription" maxlength="255"></label>
+          <label>Status<select id="formRoleStatus"><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+        </div>
+        <fieldset><legend>Permissões</legend><div id="permissionsList" class="permissions-list"></div></fieldset>
+        <div id="roleFormMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelRoleBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
+      </form>
+    </div>
+  </div>
+  <div id="passwordModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card small">
+      <div class="modal-header"><h2>Redefinir senha</h2><button id="closePasswordModal" class="icon-btn" type="button">×</button></div>
+      <form id="passwordForm">
+        <input id="passwordUserId" type="hidden">
+        <p id="passwordUserName" class="muted"></p>
+        <label>Nova senha<input id="resetPassword" type="password" minlength="8" required autocomplete="new-password"></label>
+        <div id="passwordMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelPasswordBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Redefinir</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=0.4.0"></script>
 </body>
 </html>
