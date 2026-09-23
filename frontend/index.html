@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SiFlex 4.0</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -21,19 +22,22 @@
 
     <section id="appView" class="app-window hidden">
       <header class="topbar">
-        <div>
-          <strong>SiFlex 4.0</strong>
-          <span class="muted topbar-user" id="topbarUser"></span>
+        <div class="topbar-left">
+          <button id="menuToggleBtn" class="menu-toggle secondary" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mainSidebar">
+            <span aria-hidden="true">☰</span>
+          </button>
+          <div>
+            <strong>SiFlex 4.0</strong>
+            <span class="muted topbar-user" id="topbarUser"></span>
+          </div>
         </div>
         <button id="logoutBtn" class="secondary">Sair</button>
       </header>
 
-      <div class="app-body">
-        <aside class="sidebar">
+      <div class="app-body" id="appBody">
+        <div id="menuBackdrop" class="menu-backdrop" aria-hidden="true"></div>
+        <aside class="sidebar" id="mainSidebar">
           <button class="nav-item active" data-view="homeView">Início</button>
-          <button class="nav-item" data-view="usersView">Usuários</button>
-          <button class="nav-item" data-view="rolesView">Perfis e permissões</button>
-          <button class="nav-item disabled" type="button">Módulos</button>
         </aside>
 
         <section class="content">
@@ -43,7 +47,7 @@
             </div>
             <div class="info-card">
               <h2>Fundação carregada</h2>
-              <p>Autenticação, sessão e autorização estão funcionando. O próximo módulo implementado é o gerenciamento de usuários.</p>
+              <p>Autenticação, sessão e autorização estão funcionando. O próximo passo é consolidar o catálogo de módulos e a navegação dinâmica do sistema.</p>
             </div>
           </div>
 
@@ -72,6 +76,69 @@
               </table>
             </div>
             <div class="pagination"><button id="prevPage" class="secondary">Anterior</button><span id="pageInfo"></span><button id="nextPage" class="secondary">Próxima</button></div>
+          </div>
+
+          <div id="modulesView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Gerenciar módulos</h1><p class="muted">Organize os módulos do SiFlex 4.0, suas rotas e a hierarquia de navegação.</p></div>
+              <button id="newModuleBtn" class="primary-btn">+ Novo módulo</button>
+            </div>
+            <div class="toolbar">
+              <input id="moduleSearch" type="search" placeholder="Buscar por código, nome, descrição ou rota">
+              <select id="moduleStatusFilter"><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
+              <button id="refreshModulesBtn" class="secondary">Atualizar</button>
+            </div>
+            <div id="modulesMessage" class="message"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Ordem</th><th>Código</th><th>Módulo</th><th>Nome no menu</th><th>Pai</th><th>Ícone</th><th>Rota</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="modulesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="auditView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Logs de auditoria</h1><p class="muted">Consulte as ações registradas no sistema. Esta tela é somente leitura.</p></div>
+            </div>
+            <div class="toolbar audit-toolbar">
+              <input id="auditSearch" type="search" placeholder="Buscar usuário, módulo, ação ou registro">
+              <select id="auditModuleFilter"><option value="">Todos os módulos</option></select>
+              <select id="auditActionFilter"><option value="">Todas as ações</option></select>
+              <button id="refreshAuditBtn" class="secondary">Atualizar</button>
+            </div>
+            <div class="toolbar audit-toolbar-secondary">
+              <select id="auditEntityFilter"><option value="">Todos os tipos</option></select>
+              <label class="date-filter">De<input id="auditDateFrom" type="date"></label>
+              <label class="date-filter">Até<input id="auditDateTo" type="date"></label>
+            </div>
+            <div id="auditMessage" class="message"></div>
+            <div class="table-wrap">
+              <table class="audit-table">
+                <thead><tr><th>Data/hora</th><th>Usuário</th><th>Módulo</th><th>Ação</th><th>Entidade</th><th>ID</th><th>IP</th><th>Detalhes</th></tr></thead>
+                <tbody id="auditTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination"><button id="auditPrevPage" class="secondary">Anterior</button><span id="auditPageInfo"></span><button id="auditNextPage" class="secondary">Próxima</button></div>
+          </div>
+
+          <div id="settingsView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Configurações do sistema</h1><p class="muted">Centralize parâmetros gerais do SiFlex 4.0. Alterações são registradas na auditoria.</p></div>
+            </div>
+            <div class="toolbar">
+              <input id="settingsSearch" type="search" placeholder="Buscar por código, nome ou descrição">
+              <select id="settingsCategoryFilter"><option value="">Todas as categorias</option></select>
+              <select id="settingsStatusFilter"><option value="">Todos os status</option><option value="active">Ativas</option><option value="inactive">Inativas</option></select>
+              <button id="refreshSettingsBtn" class="secondary">Atualizar</button>
+            </div>
+            <div id="settingsMessage" class="message"></div>
+            <div class="table-wrap">
+              <table class="settings-table">
+                <thead><tr><th>Código</th><th>Configuração</th><th>Categoria</th><th>Tipo</th><th>Valor atual</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="settingsTableBody"></tbody>
+              </table>
+            </div>
           </div>
 
           <div id="rolesView" class="module-view hidden">
@@ -134,6 +201,46 @@
       </form>
     </div>
   </div>
+  <div id="moduleModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card module-modal-card">
+      <div class="modal-header"><h2 id="moduleModalTitle">Novo módulo</h2><button id="closeModuleModal" class="icon-btn" type="button">×</button></div>
+      <form id="moduleForm">
+        <input id="moduleId" type="hidden">
+        <div class="form-grid">
+          <label>Código<input id="formModuleCode" required maxlength="100" autocomplete="off" placeholder="Ex.: FINANCEIRO"></label>
+          <label>Nome interno<input id="formModuleName" required maxlength="150"></label>
+          <label>Nome no menu<input id="formModuleMenuLabel" maxlength="150" placeholder="Deixe vazio para usar o nome interno"></label>
+          <label>Descrição / título<input id="formModuleDescription" maxlength="255" placeholder="Texto exibido ao passar o mouse no menu"></label>
+          <label>Ícone<input id="formModuleIcon" maxlength="150" placeholder="Ex.: mdi-wallet"></label>
+          <label>Rota<input id="formModuleRoute" maxlength="255" placeholder="Ex.: modules/financeiro"></label>
+          <label>Módulo pai<select id="formModuleParent"><option value="">— Nenhum —</option></select></label>
+          <label>Ordem<input id="formModuleSort" type="number" min="0" max="100000" step="1" value="0"></label>
+          <label>Status<select id="formModuleStatus"><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+        </div>
+        <fieldset><legend>Permissões de acesso ao módulo</legend><div id="modulePermissionsList" class="permissions-list"></div></fieldset>
+        <div id="moduleFormMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelModuleBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="settingModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card setting-modal-card">
+      <div class="modal-header"><h2 id="settingModalTitle">Editar configuração</h2><button id="closeSettingModal" class="icon-btn" type="button">×</button></div>
+      <div class="setting-meta">
+        <div><strong>Código</strong><span id="settingCode"></span></div>
+        <div><strong>Tipo</strong><span id="settingType"></span></div>
+        <div class="setting-meta-wide"><strong>Descrição</strong><span id="settingDescription"></span></div>
+        <div class="setting-meta-wide"><strong>Valor padrão</strong><code id="settingDefault"></code></div>
+      </div>
+      <form id="settingForm">
+        <div id="settingEditor"></div>
+        <div id="settingFormMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelSettingBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
+      </form>
+    </div>
+  </div>
+
   <div id="passwordModal" class="modal hidden" aria-hidden="true">
     <div class="modal-card small">
       <div class="modal-header"><h2>Redefinir senha</h2><button id="closePasswordModal" class="icon-btn" type="button">×</button></div>
@@ -147,6 +254,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=0.4.0"></script>
+  <script src="js/app.js?v=0.8.1"></script>
 </body>
 </html>
