@@ -31,7 +31,13 @@
             <span class="muted topbar-user" id="topbarUser"></span>
           </div>
         </div>
-        <button id="logoutBtn" class="secondary">Sair</button>
+        <div class="topbar-actions">
+          <button id="messagesBtn" class="topbar-icon-btn" type="button" aria-label="Mensagens" title="Mensagens">
+            <span class="mdi mdi-email-outline" aria-hidden="true"></span>
+            <span id="messagesBadge" class="notification-badge hidden" aria-label="Mensagens não lidas">0</span>
+          </button>
+          <button id="logoutBtn" class="secondary">Sair</button>
+        </div>
       </header>
 
       <div class="app-body" id="appBody">
@@ -141,6 +147,38 @@
             </div>
           </div>
 
+          <div id="companiesView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Empresas</h1><p class="muted">Cadastro de clientes e fornecedores.</p></div>
+              <button id="newCompanyBtn" class="primary-btn">+ Nova empresa</button>
+            </div>
+            <div class="toolbar">
+              <select id="companySearchField"><option value="razao_social">Razão Social</option><option value="id">Código</option><option value="fantasia">Nome Fantasia</option><option value="cnpj">CNPJ</option><option value="ie">Insc. Estadual</option><option value="tipo">Tipo</option><option value="ramo">Ramo de Atuação</option></select>
+              <input id="companySearch" type="search" placeholder="Pesquisar...">
+              <button id="companySearchBtn" class="secondary">Pesquisar</button>
+              <button id="refreshCompaniesBtn" class="secondary">Atualizar</button>
+            </div>
+            <div id="companiesMessage" class="message"></div>
+            <div class="table-wrap"><table class="crud-table"><thead><tr><th>Código</th><th>Razão Social</th><th>Nome Fantasia</th><th>CNPJ</th><th>Tipo</th><th>Ramo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="companiesTableBody"></tbody></table></div>
+            <div class="pagination"><button id="companiesPrev" class="secondary">Anterior</button><span id="companiesPageInfo"></span><button id="companiesNext" class="secondary">Próxima</button></div>
+          </div>
+
+          <div id="productsView" class="module-view hidden">
+            <div class="page-header">
+              <div><h1>Produtos</h1><p class="muted">Cadastro e controle básico dos produtos.</p></div>
+              <button id="newProductBtn" class="primary-btn">+ Novo produto</button>
+            </div>
+            <div class="toolbar">
+              <select id="productSearchField"><option value="descricao">Descrição</option><option value="cod_int">Código</option><option value="cod_forn">Código Forn.</option><option value="cod_bar">Código de Barras</option><option value="consumo">Consumo</option><option value="estoque_baixo">Estoque Baixo</option><option value="fornecedor">Fornecedor</option></select>
+              <input id="productSearch" type="search" placeholder="Pesquisar...">
+              <button id="productSearchBtn" class="secondary">Pesquisar</button>
+              <button id="refreshProductsBtn" class="secondary">Atualizar</button>
+            </div>
+            <div id="productsMessage" class="message"></div>
+            <div class="table-wrap"><table class="crud-table"><thead><tr><th>Código</th><th>Descrição</th><th>Und.</th><th>Estoque</th><th>Reserva</th><th>Disponível</th><th>Fornecedor</th><th>Status</th><th>Ações</th></tr></thead><tbody id="productsTableBody"></tbody></table></div>
+            <div class="pagination"><button id="productsPrev" class="secondary">Anterior</button><span id="productsPageInfo"></span><button id="productsNext" class="secondary">Próxima</button></div>
+          </div>
+
           <div id="rolesView" class="module-view hidden">
             <div class="page-header">
               <div><h1>Perfis e permissões</h1><p class="muted">Defina os perfis de acesso e quais permissões cada perfil possui.</p></div>
@@ -163,6 +201,45 @@
       </div>
     </section>
   </main>
+
+  <div id="companyModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card company-modal-card">
+      <div class="modal-header"><h2 id="companyModalTitle">Nova empresa</h2><button id="closeCompanyModal" class="icon-btn" type="button">×</button></div>
+      <form id="companyForm"><input id="companyId" type="hidden">
+        <div class="form-grid">
+          <label>Razão Social *<input id="formCompanyName" required maxlength="80"></label><label>Nome Fantasia<input id="formCompanyFantasy" maxlength="40"></label>
+          <label>Tipo<select id="formCompanyType"><option value="CLI">Cliente</option><option value="FOR">Fornecedor</option></select></label>
+          <label>CNPJ<input id="formCompanyCnpj" maxlength="18"></label><label>Insc. Estadual<input id="formCompanyIe" maxlength="20"></label><label>Insc. Municipal<input id="formCompanyIm" maxlength="20"></label>
+          <label>Ramo de Atuação<input id="formCompanyBranch" maxlength="80"></label><label>Telefone<input id="formCompanyPhone" maxlength="20"></label><label>E-mail<input id="formCompanyEmail" type="email" maxlength="80"></label>
+          <label>CEP<input id="formCompanyCep" maxlength="10"></label><label>Endereço<input id="formCompanyAddress" maxlength="60"></label><label>Número<input id="formCompanyNumber" maxlength="10"></label>
+          <label>Complemento<input id="formCompanyComplement" maxlength="50"></label><label>Bairro<input id="formCompanyNeighborhood" maxlength="60"></label><label>Cidade<input id="formCompanyCity" maxlength="30"></label>
+          <label>Estado<select id="formCompanyState"><option value="">— Selecione —</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></label>
+          <label>Status<select id="formCompanyStatus"><option value="active">Ativa</option><option value="inactive">Inativa</option></select></label>
+        </div>
+        <div id="companyFormMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="companyCnpjBtn" class="secondary">Consultar CNPJ</button><span style="flex:1"></span><button type="button" id="cancelCompanyBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="productModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card product-modal-card">
+      <div class="modal-header"><h2 id="productModalTitle">Novo produto</h2><button id="closeProductModal" class="icon-btn" type="button">×</button></div>
+      <form id="productForm"><input id="productId" type="hidden">
+        <div class="form-grid">
+          <label>Descrição *<input id="formProductDescription" required maxlength="80"></label><label>Código<input id="formProductCode" type="number" min="0" max="2147483647"></label>
+          <label>Código Fornecedor<input id="formProductSupplierCode" maxlength="20"></label><label>Código de Barras<input id="formProductBarcode" maxlength="20"></label>
+          <label>Unidade<input id="formProductUnit" maxlength="10" placeholder="UND"></label><label>NCM<input id="formProductNcm" maxlength="8"></label>
+          <label>Fornecedor<select id="formProductSupplier"><option value="">— Nenhum —</option></select></label><label>Consumo<select id="formProductConsumption"><option value="1">Sim</option><option value="0">Não</option></select></label>
+          <label>Estoque<input id="formProductStock" type="number" step="0.0001"></label><label>Estoque mínimo<input id="formProductMinStock" type="number" step="0.0001"></label>
+          <label>Custo (R$)<input id="formProductCost" type="number" step="0.0001"></label><label>Markup (%)<input id="formProductMarkup" type="number" step="0.0001"></label>
+          <label>Local Estoque<input id="formProductLocation" maxlength="20"></label><label>Status<select id="formProductStatus"><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+        </div>
+        <div id="productFormMessage" class="message"></div>
+        <div class="modal-actions"><button type="button" id="cancelProductBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
+      </form>
+    </div>
+  </div>
 
   <div id="userModal" class="modal hidden" aria-hidden="true">
     <div class="modal-card">
@@ -211,7 +288,13 @@
           <label>Nome interno<input id="formModuleName" required maxlength="150"></label>
           <label>Nome no menu<input id="formModuleMenuLabel" maxlength="150" placeholder="Deixe vazio para usar o nome interno"></label>
           <label>Descrição / título<input id="formModuleDescription" maxlength="255" placeholder="Texto exibido ao passar o mouse no menu"></label>
-          <label>Ícone<input id="formModuleIcon" maxlength="150" placeholder="Ex.: mdi-wallet"></label>
+          <label>Ícone
+            <div class="icon-picker-field">
+              <div id="formModuleIconPreview" class="icon-picker-preview" aria-hidden="true"></div>
+              <input id="formModuleIcon" maxlength="150" placeholder="Ex.: mdi-wallet" autocomplete="off">
+              <button id="chooseModuleIconBtn" class="secondary icon-picker-btn" type="button">Escolher</button>
+            </div>
+          </label>
           <label>Rota<input id="formModuleRoute" maxlength="255" placeholder="Ex.: modules/financeiro"></label>
           <label>Módulo pai<select id="formModuleParent"><option value="">— Nenhum —</option></select></label>
           <label>Ordem<input id="formModuleSort" type="number" min="0" max="100000" step="1" value="0"></label>
@@ -221,6 +304,98 @@
         <div id="moduleFormMessage" class="message"></div>
         <div class="modal-actions"><button type="button" id="cancelModuleBtn" class="secondary">Cancelar</button><button type="submit" class="primary-btn">Salvar</button></div>
       </form>
+    </div>
+  </div>
+
+
+  <div id="messagesModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card messages-modal-card">
+      <div class="modal-header">
+        <div>
+          <h2>Mensagens</h2>
+          <p class="muted messages-subtitle">Troca de mensagens interna entre usuários do SiFlex 4.0.</p>
+        </div>
+        <button id="closeMessagesModal" class="icon-btn" type="button">×</button>
+      </div>
+
+      <div class="messages-layout">
+        <aside class="messages-sidebar">
+          <div class="messages-sidebar-header">
+            <strong>Conversas</strong>
+            <button id="newMessageBtn" class="primary-btn" type="button" title="Nova mensagem"><span class="mdi mdi-pencil-plus-outline" aria-hidden="true"></span></button>
+          </div>
+          <div id="messagesConversationList" class="messages-conversation-list"></div>
+        </aside>
+
+        <section class="messages-chat">
+          <div id="messagesEmptyState" class="messages-empty-state">
+            <span class="mdi mdi-email-multiple-outline" aria-hidden="true"></span>
+            <strong>Selecione uma conversa</strong>
+            <span class="muted">Ou clique em Nova mensagem para iniciar uma conversa.</span>
+          </div>
+
+          <div id="messagesConversationView" class="hidden messages-conversation-view">
+            <div class="messages-chat-header">
+              <div>
+                <strong id="messagesChatName"></strong>
+                <span id="messagesChatUsername" class="muted"></span>
+              </div>
+              <span id="messagesChatStatus" class="status active">Ativo</span>
+            </div>
+            <div id="messagesList" class="messages-list"></div>
+            <form id="messageSendForm" class="message-compose">
+              <textarea id="messageBody" rows="3" maxlength="5000" placeholder="Digite sua mensagem..." required></textarea>
+              <div class="message-compose-footer">
+                <span class="muted">Enter envia · Shift+Enter quebra linha</span>
+                <button type="submit" class="primary-btn"><span class="mdi mdi-send" aria-hidden="true"></span> Enviar</button>
+              </div>
+              <div id="messageSendMessage" class="message"></div>
+            </form>
+          </div>
+
+          <div id="messagesNewView" class="hidden messages-new-view">
+            <div class="messages-new-header">
+              <strong>Nova mensagem</strong>
+              <button id="cancelNewMessageBtn" class="secondary" type="button">Cancelar</button>
+            </div>
+            <label>Destinatário
+              <select id="messageRecipient"></select>
+            </label>
+            <label>Mensagem
+              <textarea id="newMessageBody" rows="8" maxlength="5000" placeholder="Digite sua mensagem..." required></textarea>
+            </label>
+            <div id="newMessageMessage" class="message"></div>
+            <div class="modal-actions"><button id="sendNewMessageBtn" type="button" class="primary-btn"><span class="mdi mdi-send" aria-hidden="true"></span> Enviar</button></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="iconPickerModal" class="modal modal-over-modal hidden" aria-hidden="true">
+    <div class="modal-card icon-picker-modal-card">
+      <div class="modal-header">
+        <div>
+          <h2>Selecionar ícone</h2>
+          <p class="muted icon-picker-subtitle">Escolha visualmente um ícone do catálogo MDI.</p>
+        </div>
+        <button id="closeIconPickerModal" class="icon-btn" type="button">×</button>
+      </div>
+      <div class="icon-picker-toolbar">
+        <input id="iconPickerSearch" type="search" placeholder="Buscar por nome..." autocomplete="off">
+        <span id="iconPickerCount" class="muted"></span>
+      </div>
+      <div id="iconPickerMessage" class="message"></div>
+      <div id="iconPickerGrid" class="icon-picker-grid" role="listbox" aria-label="Ícones disponíveis"></div>
+      <div class="icon-picker-selected">
+        <span>Selecionado:</span>
+        <span id="iconPickerSelectedPreview" class="mdi" aria-hidden="true"></span>
+        <code id="iconPickerSelectedName">Nenhum</code>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="cancelIconPickerBtn" class="secondary">Cancelar</button>
+        <button type="button" id="confirmIconPickerBtn" class="primary-btn" disabled>Selecionar</button>
+      </div>
     </div>
   </div>
 
@@ -254,6 +429,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=0.8.1"></script>
+  <script src="js/app.js?v=0.9.0"></script>
 </body>
 </html>

@@ -118,3 +118,95 @@ legend { padding: 0 6px; font-weight: 700; }
 .setting-meta-wide { grid-column: 1 / -1; }
 #settingEditor textarea { width: 100%; resize: vertical; font: 13px/1.45 monospace; }
 @media (max-width: 760px) { .setting-meta { grid-template-columns: 1fr; } .setting-meta-wide { grid-column: auto; } }
+
+/* Seletor visual de ícones MDI */
+.icon-picker-field { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.icon-picker-field input { margin: 0; min-width: 0; }
+.icon-picker-preview { width: 42px; height: 40px; display: grid; place-items: center; border: 1px solid #dfe3e8; border-radius: 7px; background: #f9fafb; color: #344054; font-size: 24px; }
+.icon-picker-preview:not(.mdi) { font-size: 20px; color: #98a2b3; }
+.icon-picker-btn { width: auto; white-space: nowrap; }
+.modal-over-modal { z-index: 1100; }
+.icon-picker-modal-card { width: min(980px, 100%); }
+.icon-picker-subtitle { margin: -4px 0 14px; }
+.icon-picker-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.icon-picker-toolbar input { flex: 1; margin: 0; }
+.icon-picker-toolbar .muted { white-space: nowrap; font-size: 12px; }
+.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 7px; height: min(48vh, 430px); overflow: auto; padding: 8px; border: 1px solid #e2e6eb; border-radius: 9px; background: #fafbfc; }
+.icon-picker-item { width: 100%; min-height: 78px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px 5px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #344054; cursor: pointer; }
+.icon-picker-item:hover { border-color: #cbd5e1; background: #fff; }
+.icon-picker-item.selected { border-color: #98a2b3; background: #fff; box-shadow: 0 0 0 1px rgba(52,64,84,.08); }
+.icon-picker-item > span:first-child { font-size: 27px; line-height: 1; }
+.icon-picker-item > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.icon-picker-selected { display: flex; align-items: center; gap: 8px; min-height: 42px; margin-top: 10px; padding: 8px 10px; border: 1px solid #e2e6eb; border-radius: 8px; background: #f9fafb; }
+.icon-picker-selected-preview { font-size: 24px; width: 30px; text-align: center; }
+.icon-picker-selected code { margin-left: 2px; }
+@media (max-width: 760px) {
+  .icon-picker-field { grid-template-columns: 42px minmax(0, 1fr); }
+  .icon-picker-btn { grid-column: 1 / -1; width: 100%; }
+  .icon-picker-toolbar { align-items: stretch; flex-direction: column; }
+  .icon-picker-toolbar .muted { white-space: normal; }
+  .icon-picker-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); height: 52vh; }
+}
+
+
+/* Mensagens internas */
+.topbar-actions { display:flex; align-items:center; gap:8px; }
+.topbar-icon-btn { position:relative; width:40px; height:40px; padding:0; display:inline-flex; align-items:center; justify-content:center; background:#fff; color:#344054; border:1px solid #cbd2dc; font-size:22px; }
+.topbar-icon-btn:hover { background:#f7f8fa; }
+.notification-badge { position:absolute; top:-6px; right:-6px; min-width:19px; height:19px; padding:0 5px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:#dc2626; color:#fff; border:2px solid #fff; font:700 10px/1 Arial,sans-serif; }
+.messages-modal-card { width:min(1080px, 100%); height:min(760px, calc(100vh - 40px)); display:flex; flex-direction:column; overflow:hidden; }
+.messages-subtitle { margin:-4px 0 0; font-size:13px; }
+.messages-layout { display:grid; grid-template-columns:310px minmax(0,1fr); gap:0; min-height:0; flex:1; border:1px solid #e2e6eb; border-radius:9px; overflow:hidden; }
+.messages-sidebar { min-width:0; background:#f8fafc; border-right:1px solid #e2e6eb; display:flex; flex-direction:column; }
+.messages-sidebar-header { display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e6eb; background:#fff; }
+.messages-sidebar-header .primary-btn { width:38px; height:34px; padding:0; }
+.messages-conversation-list { overflow:auto; min-height:0; }
+.messages-list-empty { padding:28px 16px; text-align:center; color:#667085; font-size:13px; }
+.message-conversation-item { width:100%; display:grid; grid-template-columns:38px minmax(0,1fr) auto; gap:9px; align-items:center; padding:11px 10px; border-radius:0; border-bottom:1px solid #edf0f3; background:transparent; color:#172033; text-align:left; }
+.message-conversation-item:hover, .message-conversation-item.active { background:#eef2f7; }
+.message-avatar { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#e2e8f0; color:#475569; font-size:20px; }
+.message-conversation-main { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.message-conversation-main strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.message-conversation-main small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#667085; font-size:11px; }
+.message-conversation-meta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+.message-conversation-meta small { color:#98a2b3; font-size:10px; white-space:nowrap; }
+.conversation-unread { min-width:19px; height:19px; padding:0 5px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:#dc2626; color:#fff; font-size:10px; }
+.messages-chat { min-width:0; min-height:0; display:flex; flex-direction:column; background:#fff; }
+.messages-empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; color:#667085; padding:30px; }
+.messages-empty-state > .mdi { font-size:58px; color:#cbd5e1; }
+.messages-conversation-view { min-height:0; flex:1; display:flex; flex-direction:column; }
+.messages-chat-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 16px; border-bottom:1px solid #e2e6eb; }
+.messages-chat-header > div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.messages-chat-header strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.messages-chat-header .muted { font-size:12px; }
+.messages-list { flex:1; min-height:0; overflow:auto; padding:18px; background:#f8fafc; }
+.message-bubble-row { display:flex; margin:5px 0; }
+.message-bubble-row.mine { justify-content:flex-end; }
+.message-bubble { max-width:min(75%, 620px); padding:9px 11px; border-radius:11px; background:#e2e8f0; color:#172033; box-shadow:0 1px 1px rgba(0,0,0,.03); }
+.message-bubble-row.mine .message-bubble { background:#1f2937; color:#fff; border-bottom-right-radius:3px; }
+.message-bubble-row.theirs .message-bubble { border-bottom-left-radius:3px; }
+.message-bubble-text { font-size:14px; line-height:1.45; overflow-wrap:anywhere; }
+.message-bubble-time { margin-top:5px; text-align:right; font-size:10px; opacity:.65; }
+.message-compose { border-top:1px solid #e2e6eb; padding:10px 12px 8px; background:#fff; }
+.message-compose textarea, .messages-new-view textarea { width:100%; resize:vertical; margin:0; min-height:72px; }
+.message-compose-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:7px; }
+.message-compose-footer button { width:auto; }
+.message-compose-footer .muted { font-size:11px; }
+.messages-new-view { padding:18px; overflow:auto; }
+.messages-new-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.messages-new-header button { width:auto; }
+.messages-new-view label { max-width:700px; }
+@media (max-width:760px) {
+  .topbar-actions { gap:5px; }
+  .messages-modal-card { height:calc(100vh - 20px); }
+  .messages-layout { grid-template-columns:1fr; position:relative; }
+  .messages-sidebar { display:none; }
+  .messages-chat { min-height:0; }
+  .message-bubble { max-width:88%; }
+}
+
+
+/* Cadastros V4 */
+.crud-table { min-width: 980px; }
+.company-modal-card { width:min(1000px,100%); }
+.product-modal-card { width:min(900px,100%); }

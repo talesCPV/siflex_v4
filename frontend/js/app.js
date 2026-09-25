@@ -19,10 +19,17 @@ let usersTotalPages = 1;
 let editingUserId = 0;
 let editingRoleId = 0;
 let editingModuleId = 0;
+let mdiIconCatalog = [];
+let iconPickerSelected = '';
+let iconPickerOriginal = '';
 let availableMenuItems = [];
 let auditPage = 1;
 let auditTotalPages = 1;
 let editingSettingId = 0;
+let messagingPollTimer = null;
+let messagingCurrentUserId = 0;
+let messagingCurrentUserName = '';
+let messagingCurrentConversationUserId = 0;
 
 async function loadDynamicMenu() {
   try {
@@ -111,6 +118,8 @@ function navigateMenuItem(btn) {
     if (route === 'modulesView') loadModulesAdmin();
     if (route === 'auditView') loadAudit();
     if (route === 'settingsView') loadSettings();
+    if (route === 'companiesView') loadCompanies();
+    if (route === 'productsView') loadProducts();
     return;
   }
   if (/^(https?:)?\//.test(route)) window.location.href = route;
@@ -338,7 +347,10 @@ function showApp(user) {
   loginView.classList.add('hidden');
   appView.classList.remove('hidden');
   currentUser = user;
-  document.getElementById('topbarUser').textContent = user.display_name || user.username;
+  messagingCurrentUserId = Number(user.id || 0);
+  messagingCurrentUserName = user.display_name || user.username || '';
+  document.getElementById('topbarUser').textContent = messagingCurrentUserName;
+  startMessagingPolling();
 }
 
 function setMessage(id, message = '') { document.getElementById(id).textContent = message; }
@@ -569,6 +581,7 @@ async function openNewModule() {
   editingModuleId = 0;
   document.getElementById('moduleModalTitle').textContent = 'Novo módulo';
   document.getElementById('moduleForm').reset();
+  setModuleIconPreview('');
   document.getElementById('formModuleStatus').value = 'active';
   document.getElementById('formModuleSort').value = '0';
   setMessage('moduleFormMessage', '');
@@ -588,6 +601,7 @@ async function openEditModule(id) {
     document.getElementById('formModuleMenuLabel').value = module.menu_label || '';
     document.getElementById('formModuleDescription').value = module.description || '';
     document.getElementById('formModuleIcon').value = module.icon || '';
+    setModuleIconPreview(module.icon || '');
     document.getElementById('formModuleRoute').value = module.route || '';
     document.getElementById('formModuleSort').value = module.sort_order;
     document.getElementById('formModuleStatus').value = module.status;
@@ -597,6 +611,117 @@ async function openEditModule(id) {
     setMessage('moduleFormMessage', '');
     openModal('moduleModal');
   } catch (error) { setMessage('modulesMessage', error.message); }
+}
+
+function canonicalMdiIcon(icon) {
+  const value = String(icon || '').trim();
+  if (!value) return '';
+  const classes = value.split(/\s+/).filter(Boolean);
+  const iconClass = classes.find(c => c.startsWith('mdi-'));
+  return iconClass && /^[a-z0-9_-]+$/i.test(iconClass) ? iconClass : '';
+}
+
+function iconLabel(icon) {
+  const canonical = canonicalMdiIcon(icon);
+  return canonical ? canonical.replace(/^mdi-/, '') : '';
+}
+
+function setModuleIconPreview(icon) {
+  const preview = document.getElementById('formModuleIconPreview');
+  if (!preview) return;
+  const canonical = canonicalMdiIcon(icon);
+  preview.className = `icon-picker-preview${canonical ? ` mdi ${canonical}` : ''}`;
+  preview.textContent = canonical ? '' : '◇';
+  preview.title = canonical ? canonical : 'Nenhum ícone selecionado';
+}
+
+function setIconPickerSelected(icon) {
+  iconPickerSelected = canonicalMdiIcon(icon);
+  const preview = document.getElementById('iconPickerSelectedPreview');
+  const name = document.getElementById('iconPickerSelectedName');
+  const confirm = document.getElementById('confirmIconPickerBtn');
+  if (preview) preview.className = `icon-picker-selected-preview${iconPickerSelected ? ` mdi ${iconPickerSelected}` : ''}`;
+  if (name) name.textContent = iconPickerSelected || 'Nenhum';
+  if (confirm) confirm.disabled = !iconPickerSelected;
+}
+
+function renderIconPicker() {
+  const grid = document.getElementById('iconPickerGrid');
+  const searchInput = document.getElementById('iconPickerSearch');
+  const count = document.getElementById('iconPickerCount');
+  const message = document.getElementById('iconPickerMessage');
+  if (!grid || !searchInput || !count) return;
+
+  const term = searchInput.value.trim().toLowerCase();
+  const filtered = mdiIconCatalog.filter(icon => icon.toLowerCase().includes(term));
+  const maxVisible = 240;
+  const visible = filtered.slice(0, maxVisible);
+  count.textContent = filtered.length > maxVisible
+    ? `${filtered.length} encontrados · mostrando ${maxVisible}`
+    : `${filtered.length} encontrado${filtered.length === 1 ? '' : 's'}`;
+
+  if (!mdiIconCatalog.length) {
+    grid.innerHTML = '';
+    if (message) message.textContent = 'Não foi possível carregar o catálogo de ícones.';
+    return;
+  }
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    if (message) message.textContent = 'Nenhum ícone encontrado.';
+    return;
+  }
+  if (message) message.textContent = '';
+
+  grid.innerHTML = visible.map(icon => {
+    const canonical = canonicalMdiIcon(icon);
+    if (!canonical) return '';
+    const selected = canonical === iconPickerSelected ? ' selected' : '';
+    return `<button type="button" class="icon-picker-item${selected}" data-icon-value="${escapeHtml(canonical)}" role="option" aria-selected="${selected ? 'true' : 'false'}" title="${escapeHtml(canonical)}">
+      <span class="mdi ${escapeHtml(canonical)}" aria-hidden="true"></span>
+      <span>${escapeHtml(iconLabel(canonical))}</span>
+    </button>`;
+  }).join('');
+}
+
+async function loadMdiIconCatalog() {
+  if (mdiIconCatalog.length) return mdiIconCatalog;
+  const response = await fetch('assets/mdi/icons.json', { cache: 'force-cache' });
+  if (!response.ok) throw new Error(`Não foi possível carregar o catálogo de ícones (${response.status}).`);
+  const data = await response.json();
+  if (!Array.isArray(data)) throw new Error('O catálogo de ícones possui formato inválido.');
+  mdiIconCatalog = [...new Set(data.map(canonicalMdiIcon).filter(Boolean))];
+  return mdiIconCatalog;
+}
+
+async function openIconPicker() {
+  const current = document.getElementById('formModuleIcon')?.value || '';
+  iconPickerOriginal = canonicalMdiIcon(current);
+  setIconPickerSelected(iconPickerOriginal);
+  const search = document.getElementById('iconPickerSearch');
+  if (search) search.value = '';
+  const message = document.getElementById('iconPickerMessage');
+  if (message) message.textContent = 'Carregando ícones...';
+  openModal('iconPickerModal');
+  try {
+    await loadMdiIconCatalog();
+    renderIconPicker();
+    search?.focus();
+  } catch (error) {
+    if (message) message.textContent = error.message;
+  }
+}
+
+function closeIconPicker() {
+  closeModal('iconPickerModal');
+  iconPickerSelected = iconPickerOriginal;
+}
+
+function confirmIconPicker() {
+  const input = document.getElementById('formModuleIcon');
+  if (!input || !iconPickerSelected) return;
+  input.value = iconPickerSelected;
+  setModuleIconPreview(iconPickerSelected);
+  closeModal('iconPickerModal');
 }
 
 async function saveModule(event) {
@@ -772,6 +897,195 @@ async function inactivateUser(id) {
   } catch (error) { setMessage('usersMessage', error.message); }
 }
 
+
+async function refreshUnreadMessages() {
+  if (!currentUser) return;
+  try {
+    const result = await request(`${API}/messages.php?action=unread-count`);
+    const count = Number(result.data.unread_count || 0);
+    const badge = document.getElementById('messagesBadge');
+    if (!badge) return;
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.classList.toggle('hidden', count <= 0);
+    badge.setAttribute('aria-label', `${count} mensagem${count === 1 ? '' : 'ns'} não lida${count === 1 ? '' : 's'}`);
+  } catch (error) {
+    console.debug('Mensagens: não foi possível atualizar o contador.', error);
+  }
+}
+
+function startMessagingPolling() {
+  if (messagingPollTimer) clearInterval(messagingPollTimer);
+  refreshUnreadMessages();
+  messagingPollTimer = setInterval(() => {
+    refreshUnreadMessages();
+    if (!document.getElementById('messagesModal')?.classList.contains('hidden') && messagingCurrentConversationUserId) {
+      loadMessageConversation(messagingCurrentConversationUserId, true);
+    }
+  }, 15000);
+}
+
+function stopMessagingPolling() {
+  if (messagingPollTimer) clearInterval(messagingPollTimer);
+  messagingPollTimer = null;
+}
+
+function renderConversationList(items) {
+  const list = document.getElementById('messagesConversationList');
+  if (!list) return;
+  if (!items.length) {
+    list.innerHTML = '<div class="messages-list-empty">Nenhuma conversa ainda.</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => {
+    const active = Number(item.user_id) === messagingCurrentConversationUserId ? ' active' : '';
+    const unread = Number(item.unread_count || 0);
+    return `<button type="button" class="message-conversation-item${active}" data-message-user="${Number(item.user_id)}">
+      <span class="message-avatar"><span class="mdi mdi-account-outline" aria-hidden="true"></span></span>
+      <span class="message-conversation-main">
+        <strong>${escapeHtml(item.display_name || item.username)}</strong>
+        <small>${escapeHtml(item.last_body || '')}</small>
+      </span>
+      <span class="message-conversation-meta">
+        <small>${escapeHtml(formatMessageDate(item.last_created_at))}</small>
+        ${unread ? `<b class="conversation-unread">${unread > 99 ? '99+' : unread}</b>` : ''}
+      </span>
+    </button>`;
+  }).join('');
+}
+
+function formatMessageDate(value) {
+  if (!value) return '';
+  const date = new Date(String(value).replace(' ', 'T'));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+
+async function loadMessageConversations(selectUserId = 0) {
+  try {
+    const result = await request(`${API}/messages.php?action=conversations`);
+    const items = result.data.items || [];
+    renderConversationList(items);
+    if (selectUserId) {
+      const found = items.some(item => Number(item.user_id) === Number(selectUserId));
+      if (found) await loadMessageConversation(Number(selectUserId));
+    }
+  } catch (error) {
+    const list = document.getElementById('messagesConversationList');
+    if (list) list.innerHTML = `<div class="message">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function showMessagesPane(name) {
+  ['messagesEmptyState','messagesConversationView','messagesNewView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById(name)?.classList.remove('hidden');
+}
+
+function renderMessages(items) {
+  const list = document.getElementById('messagesList');
+  if (!list) return;
+  if (!items.length) {
+    list.innerHTML = '<div class="messages-list-empty">Nenhuma mensagem nesta conversa.</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => {
+    const mine = Number(item.sender_id) === messagingCurrentUserId;
+    return `<div class="message-bubble-row ${mine ? 'mine' : 'theirs'}">
+      <div class="message-bubble">
+        <div class="message-bubble-text">${escapeHtml(item.body).replace(/\n/g, '<br>')}</div>
+        <div class="message-bubble-time">${escapeHtml(formatMessageDate(item.created_at))}${mine && item.read_at ? ' · Lida' : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+async function loadMessageConversation(userId, silent = false) {
+  messagingCurrentConversationUserId = Number(userId);
+  try {
+    const result = await request(`${API}/messages.php?action=conversation&user_id=${encodeURIComponent(userId)}`);
+    const data = result.data || {};
+    document.getElementById('messagesChatName').textContent = data.user?.display_name || data.user?.username || 'Usuário';
+    document.getElementById('messagesChatUsername').textContent = data.user?.username ? `@${data.user.username}` : '';
+    document.getElementById('messagesChatStatus').textContent = data.user?.status === 'active' ? 'Ativo' : 'Inativo';
+    document.getElementById('messagesChatStatus').className = `status ${data.user?.status === 'active' ? 'active' : 'inactive'}`;
+    renderMessages(data.messages || []);
+    showMessagesPane('messagesConversationView');
+    document.getElementById('messageBody').focus();
+    await request(`${API}/messages.php?action=mark-read&user_id=${encodeURIComponent(userId)}`, {method:'POST'});
+    await refreshUnreadMessages();
+    if (!silent) await loadMessageConversations(userId);
+  } catch (error) {
+    if (!silent) setMessage('messageSendMessage', error.message);
+  }
+}
+
+async function loadMessageRecipients() {
+  const select = document.getElementById('messageRecipient');
+  if (!select) return;
+  select.innerHTML = '<option value="">Carregando usuários...</option>';
+  try {
+    const result = await request(`${API}/messages.php?action=users`);
+    const items = result.data.items || [];
+    select.innerHTML = '<option value="">Selecione um usuário...</option>' + items.map(user => `<option value="${Number(user.id)}">${escapeHtml(user.display_name)} (@${escapeHtml(user.username)})</option>`).join('');
+    if (!items.length) select.innerHTML = '<option value="">Nenhum outro usuário ativo</option>';
+  } catch (error) {
+    select.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
+  }
+}
+
+async function openMessagesModal() {
+  openModal('messagesModal');
+  messagingCurrentConversationUserId = 0;
+  showMessagesPane('messagesEmptyState');
+  setMessage('messageSendMessage', '');
+  setMessage('newMessageMessage', '');
+  await loadMessageConversations();
+  await refreshUnreadMessages();
+}
+
+function closeMessagesModal() {
+  closeModal('messagesModal');
+  messagingCurrentConversationUserId = 0;
+}
+
+async function openNewMessageComposer() {
+  showMessagesPane('messagesNewView');
+  document.getElementById('newMessageBody').value = '';
+  setMessage('newMessageMessage', '');
+  await loadMessageRecipients();
+  document.getElementById('messageRecipient').focus();
+}
+
+async function sendMessageToRecipient() {
+  const recipientId = Number(document.getElementById('messageRecipient').value || 0);
+  const body = document.getElementById('newMessageBody').value.trim();
+  if (!recipientId) { setMessage('newMessageMessage', 'Selecione um destinatário.'); return; }
+  if (!body) { setMessage('newMessageMessage', 'Digite uma mensagem.'); return; }
+  setMessage('newMessageMessage', 'Enviando...');
+  try {
+    await request(`${API}/messages.php?action=send`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recipient_id:recipientId, body})});
+    document.getElementById('newMessageBody').value = '';
+    setMessage('newMessageMessage', 'Mensagem enviada.');
+    await loadMessageConversations(recipientId);
+    await refreshUnreadMessages();
+  } catch (error) { setMessage('newMessageMessage', error.message); }
+}
+
+async function sendCurrentMessage(event) {
+  event.preventDefault();
+  if (!messagingCurrentConversationUserId) return;
+  const textarea = document.getElementById('messageBody');
+  const body = textarea.value.trim();
+  if (!body) return;
+  setMessage('messageSendMessage', 'Enviando...');
+  try {
+    await request(`${API}/messages.php?action=send`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({recipient_id:messagingCurrentConversationUserId, body})});
+    textarea.value = '';
+    setMessage('messageSendMessage', '');
+    await loadMessageConversation(messagingCurrentConversationUserId);
+  } catch (error) { setMessage('messageSendMessage', error.message); }
+}
+
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
   event.preventDefault(); setLoginMessage('Entrando...');
   try {
@@ -785,11 +1099,292 @@ document.getElementById('menuToggleBtn').addEventListener('click', () => {
   setMobileMenu(!body?.classList.contains('menu-open'));
 });
 document.getElementById('menuBackdrop').addEventListener('click', closeMobileMenu);
+
+/* =========================
+   Cadastros: Empresas
+   ========================= */
+let companiesPage = 1, companiesTotalPages = 1, editingCompanyId = 0;
+let productsPage = 1, productsTotalPages = 1, editingProductId = 0;
+
+function companyTypeLabel(type) {
+  return ({CLI:'Cliente', FOR:'Fornecedor'})[type] || type || '—';
+}
+
+function formatCrudNumber(value) {
+  if (value === null || value === undefined || value === '') return '0';
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString('pt-BR', {maximumFractionDigits: 4}) : String(value);
+}
+
+async function loadCompanies() {
+  setMessage('companiesMessage','Carregando...');
+  const params = new URLSearchParams({action:'list', page:String(companiesPage), per_page:'20'});
+  const field = document.getElementById('companySearchField').value;
+  const search = document.getElementById('companySearch').value.trim();
+  const status = 'active';
+  params.set('field', field); if (search) params.set('search', search); params.set('status', status);
+  try {
+    const result = await request(`${API}/companies.php?${params}`);
+    const data = result.data || {};
+    const items = data.items || [];
+    companiesTotalPages = Number(data.total_pages || 1);
+    const body = document.getElementById('companiesTableBody');
+    body.innerHTML = items.length ? items.map(c => `
+      <tr>
+        <td>${escapeHtml(c.id)}</td>
+        <td><strong>${escapeHtml(c.razao_social)}</strong></td>
+        <td>${escapeHtml(c.fantasia || '—')}</td>
+        <td>${escapeHtml(c.cnpj || '—')}</td>
+        <td>${escapeHtml(companyTypeLabel(c.tipo))}</td>
+        <td>${escapeHtml(c.ramo || '—')}</td>
+        <td><span class="status ${c.status === 'active' ? 'active' : 'inactive'}">${c.status === 'active' ? 'Ativa' : 'Inativa'}</span></td>
+        <td><div class="row-actions"><button class="secondary" data-edit-company="${c.id}">Editar</button><button class="secondary" data-inactivate-company="${c.id}">Inativar</button></div></td>
+      </tr>`).join('') : '<tr><td colspan="8" class="muted">Nenhuma empresa encontrada.</td></tr>';
+    document.getElementById('companiesPageInfo').textContent = `Página ${companiesPage} de ${companiesTotalPages}`;
+    document.getElementById('companiesPrev').disabled = companiesPage <= 1;
+    document.getElementById('companiesNext').disabled = companiesPage >= companiesTotalPages;
+    setMessage('companiesMessage','');
+  } catch (e) { setMessage('companiesMessage',e.message); }
+}
+
+function clearCompanyForm() {
+  document.getElementById('companyForm').reset();
+  document.getElementById('companyId').value = '';
+  document.getElementById('formCompanyType').value = 'CLI';
+  document.getElementById('formCompanyStatus').value = 'active';
+  setMessage('companyFormMessage','');
+}
+
+function fillCompanyForm(c) {
+  document.getElementById('companyId').value = c.id;
+  document.getElementById('formCompanyName').value = c.razao_social || '';
+  document.getElementById('formCompanyFantasy').value = c.fantasia || '';
+  document.getElementById('formCompanyType').value = c.tipo || 'CLI';
+  document.getElementById('formCompanyCnpj').value = c.cnpj || '';
+  document.getElementById('formCompanyIe').value = c.ie || '';
+  document.getElementById('formCompanyIm').value = c.im || '';
+  document.getElementById('formCompanyBranch').value = c.ramo || '';
+  document.getElementById('formCompanyPhone').value = c.tel || '';
+  document.getElementById('formCompanyEmail').value = c.email || '';
+  document.getElementById('formCompanyCep').value = c.cep || '';
+  document.getElementById('formCompanyAddress').value = c.endereco || '';
+  document.getElementById('formCompanyNumber').value = c.num || '';
+  document.getElementById('formCompanyComplement').value = c.comp || '';
+  document.getElementById('formCompanyNeighborhood').value = c.bairro || '';
+  document.getElementById('formCompanyCity').value = c.cidade || '';
+  document.getElementById('formCompanyState').value = c.uf || '';
+  document.getElementById('formCompanyStatus').value = c.status || 'active';
+}
+
+async function openCompany(id = 0) {
+  editingCompanyId = Number(id);
+  clearCompanyForm();
+  document.getElementById('companyModalTitle').textContent = id ? 'Editar empresa' : 'Nova empresa';
+  if (id) {
+    try {
+      const result = await request(`${API}/companies.php?action=get&id=${id}`);
+      fillCompanyForm(result.data);
+    } catch (e) { setMessage('companyFormMessage',e.message); return; }
+  }
+  openModal('companyModal');
+}
+
+async function saveCompany(event) {
+  event.preventDefault();
+  setMessage('companyFormMessage','Salvando...');
+  const data = {
+    id: Number(document.getElementById('companyId').value || 0),
+    razao_social: document.getElementById('formCompanyName').value.trim(),
+    fantasia: document.getElementById('formCompanyFantasy').value.trim(),
+    tipo: document.getElementById('formCompanyType').value,
+    cnpj: document.getElementById('formCompanyCnpj').value.trim(),
+    ie: document.getElementById('formCompanyIe').value.trim(),
+    im: document.getElementById('formCompanyIm').value.trim(),
+    ramo: document.getElementById('formCompanyBranch').value.trim(),
+    tel: document.getElementById('formCompanyPhone').value.trim(),
+    email: document.getElementById('formCompanyEmail').value.trim(),
+    cep: document.getElementById('formCompanyCep').value.trim(),
+    endereco: document.getElementById('formCompanyAddress').value.trim(),
+    num: document.getElementById('formCompanyNumber').value.trim(),
+    comp: document.getElementById('formCompanyComplement').value.trim(),
+    bairro: document.getElementById('formCompanyNeighborhood').value.trim(),
+    cidade: document.getElementById('formCompanyCity').value.trim(),
+    uf: document.getElementById('formCompanyState').value,
+    status: document.getElementById('formCompanyStatus').value
+  };
+  try {
+    const action = data.id ? 'update' : 'create';
+    await request(`${API}/companies.php?action=${action}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    closeModal('companyModal'); await loadCompanies(); await loadDynamicMenu();
+  } catch (e) { setMessage('companyFormMessage',e.message); }
+}
+
+async function inactivateCompany(id) {
+  if (!confirm('Deseja realmente inativar esta empresa?')) return;
+  try { await request(`${API}/companies.php?action=delete`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); await loadCompanies(); }
+  catch(e) { setMessage('companiesMessage',e.message); }
+}
+
+/* =========================
+   Cadastros: Produtos
+   ========================= */
+async function loadProducts() {
+  setMessage('productsMessage','Carregando...');
+  const params = new URLSearchParams({action:'list', page:String(productsPage), per_page:'20'});
+  const field = document.getElementById('productSearchField').value;
+  const search = document.getElementById('productSearch').value.trim();
+  params.set('field',field); if(search) params.set('search',search); params.set('status','active');
+  try {
+    const result = await request(`${API}/products.php?${params}`);
+    const data = result.data || {};
+    const items = data.items || [];
+    productsTotalPages = Number(data.total_pages || 1);
+    const body = document.getElementById('productsTableBody');
+    body.innerHTML = items.length ? items.map(p => `
+      <tr>
+        <td>${escapeHtml(p.cod_int ?? '—')}</td>
+        <td><strong>${escapeHtml(p.descricao)}</strong></td>
+        <td>${escapeHtml(p.unidade || '—')}</td>
+        <td>${escapeHtml(formatCrudNumber(p.estoque))}</td>
+        <td>${escapeHtml(formatCrudNumber(p.reserva))}</td>
+        <td>${escapeHtml(formatCrudNumber(p.disponivel))}</td>
+        <td>${escapeHtml(p.fornecedor_nome || '—')}</td>
+        <td><span class="status ${p.status === 'active' ? 'active' : 'inactive'}">${p.status === 'active' ? 'Ativo' : 'Inativo'}</span></td>
+        <td><div class="row-actions"><button class="secondary" data-edit-product="${p.id}">Editar</button><button class="secondary" data-inactivate-product="${p.id}">Inativar</button></div></td>
+      </tr>`).join('') : '<tr><td colspan="9" class="muted">Nenhum produto encontrado.</td></tr>';
+    document.getElementById('productsPageInfo').textContent = `Página ${productsPage} de ${productsTotalPages}`;
+    document.getElementById('productsPrev').disabled = productsPage <= 1;
+    document.getElementById('productsNext').disabled = productsPage >= productsTotalPages;
+    setMessage('productsMessage','');
+  } catch(e) { setMessage('productsMessage',e.message); }
+}
+
+async function loadProductSuppliers(selectedId = '') {
+  const select = document.getElementById('formProductSupplier');
+  try {
+    const result = await request(`${API}/companies.php?action=options`);
+    select.innerHTML = '<option value="">— Nenhum —</option>' + (result.data.items || []).map(c =>
+      `<option value="${c.id}">${escapeHtml(c.fantasia || c.razao_social)}</option>`).join('');
+    select.value = selectedId || '';
+  } catch(e) { select.innerHTML = '<option value="">Não foi possível carregar</option>'; }
+}
+
+function clearProductForm() {
+  document.getElementById('productForm').reset();
+  document.getElementById('productId').value = '';
+  document.getElementById('formProductUnit').value = 'UND';
+  document.getElementById('formProductConsumption').value = '0';
+  document.getElementById('formProductStock').value = '0';
+  document.getElementById('formProductMinStock').value = '0';
+  document.getElementById('formProductCost').value = '0';
+  document.getElementById('formProductMarkup').value = '0';
+  document.getElementById('formProductStatus').value = 'active';
+  setMessage('productFormMessage','');
+}
+
+function fillProductForm(p) {
+  document.getElementById('productId').value = p.id;
+  document.getElementById('formProductDescription').value = p.descricao || '';
+  document.getElementById('formProductCode').value = p.cod_int ?? '';
+  document.getElementById('formProductSupplierCode').value = p.cod_forn || '';
+  document.getElementById('formProductBarcode').value = p.cod_bar || '';
+  document.getElementById('formProductUnit').value = p.unidade || 'UND';
+  document.getElementById('formProductNcm').value = p.ncm || '';
+  document.getElementById('formProductConsumption').value = p.consumo ? '1' : '0';
+  document.getElementById('formProductStock').value = p.estoque ?? 0;
+  document.getElementById('formProductMinStock').value = p.estq_min ?? 0;
+  document.getElementById('formProductCost').value = p.custo ?? 0;
+  document.getElementById('formProductMarkup').value = p.markup ?? 0;
+  document.getElementById('formProductLocation').value = p.local || '';
+  document.getElementById('formProductStatus').value = p.status || 'active';
+}
+
+async function openProduct(id = 0) {
+  editingProductId = Number(id);
+  clearProductForm();
+  document.getElementById('productModalTitle').textContent = id ? 'Editar produto' : 'Novo produto';
+  if (id) {
+    try {
+      const result = await request(`${API}/products.php?action=get&id=${id}`);
+      fillProductForm(result.data);
+      await loadProductSuppliers(result.data.id_emp || '');
+    } catch(e) { setMessage('productFormMessage',e.message); return; }
+  } else await loadProductSuppliers();
+  openModal('productModal');
+}
+
+async function saveProduct(event) {
+  event.preventDefault();
+  setMessage('productFormMessage','Salvando...');
+  const data = {
+    id:Number(document.getElementById('productId').value || 0),
+    id_emp:document.getElementById('formProductSupplier').value ? Number(document.getElementById('formProductSupplier').value) : null,
+    descricao:document.getElementById('formProductDescription').value.trim(),
+    estoque:Number(document.getElementById('formProductStock').value || 0),
+    estq_min:Number(document.getElementById('formProductMinStock').value || 0),
+    unidade:document.getElementById('formProductUnit').value.trim(),
+    ncm:document.getElementById('formProductNcm').value.trim(),
+    cod_int:document.getElementById('formProductCode').value ? Number(document.getElementById('formProductCode').value) : null,
+    cod_bar:document.getElementById('formProductBarcode').value.trim(),
+    cod_forn:document.getElementById('formProductSupplierCode').value.trim(),
+    consumo:document.getElementById('formProductConsumption').value === '1',
+    custo:Number(document.getElementById('formProductCost').value || 0),
+    markup:Number(document.getElementById('formProductMarkup').value || 0),
+    local:document.getElementById('formProductLocation').value.trim(),
+    status:document.getElementById('formProductStatus').value
+  };
+  try {
+    const action = data.id ? 'update' : 'create';
+    await request(`${API}/products.php?action=${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    closeModal('productModal'); await loadProducts();
+  } catch(e) { setMessage('productFormMessage',e.message); }
+}
+
+async function inactivateProduct(id) {
+  if (!confirm('Deseja realmente inativar este produto?')) return;
+  try { await request(`${API}/products.php?action=delete`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); await loadProducts(); }
+  catch(e) { setMessage('productsMessage',e.message); }
+}
+
+
+
+document.getElementById('newCompanyBtn').addEventListener('click', () => openCompany());
+document.getElementById('refreshCompaniesBtn').addEventListener('click', () => { companiesPage=1; loadCompanies(); });
+document.getElementById('companySearchBtn').addEventListener('click', () => { companiesPage=1; loadCompanies(); });
+document.getElementById('companySearch').addEventListener('keydown', e => { if(e.key==='Enter'){ companiesPage=1; loadCompanies(); }});
+document.getElementById('companiesPrev').addEventListener('click',()=>{if(companiesPage>1){companiesPage--;loadCompanies();}});
+document.getElementById('companiesNext').addEventListener('click',()=>{if(companiesPage<companiesTotalPages){companiesPage++;loadCompanies();}});
+document.getElementById('companiesTableBody').addEventListener('click',e=>{
+  const edit=e.target.closest('[data-edit-company]'); if(edit) return openCompany(Number(edit.dataset.editCompany));
+  const del=e.target.closest('[data-inactivate-company]'); if(del) return inactivateCompany(Number(del.dataset.inactivateCompany));
+});
+document.getElementById('closeCompanyModal').addEventListener('click',()=>closeModal('companyModal'));
+document.getElementById('cancelCompanyBtn').addEventListener('click',()=>closeModal('companyModal'));
+document.getElementById('companyForm').addEventListener('submit',saveCompany);
+document.getElementById('companyCnpjBtn').addEventListener('click',()=>{
+  const cnpj=document.getElementById('formCompanyCnpj').value.replace(/\D/g,'');
+  if(cnpj) window.open(`https://servicos.receita.fazenda.gov.br/servicos/cnpjreva/Cnpjreva_Solicitacao.asp?cnpj=${encodeURIComponent(cnpj)}`,'_blank');
+});
+
+document.getElementById('newProductBtn').addEventListener('click',()=>openProduct());
+document.getElementById('refreshProductsBtn').addEventListener('click',()=>{productsPage=1;loadProducts();});
+document.getElementById('productSearchBtn').addEventListener('click',()=>{productsPage=1;loadProducts();});
+document.getElementById('productSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){productsPage=1;loadProducts();}});
+document.getElementById('productsPrev').addEventListener('click',()=>{if(productsPage>1){productsPage--;loadProducts();}});
+document.getElementById('productsNext').addEventListener('click',()=>{if(productsPage<productsTotalPages){productsPage++;loadProducts();}});
+document.getElementById('productsTableBody').addEventListener('click',e=>{
+  const edit=e.target.closest('[data-edit-product]'); if(edit) return openProduct(Number(edit.dataset.editProduct));
+  const del=e.target.closest('[data-inactivate-product]'); if(del) return inactivateProduct(Number(del.dataset.inactivateProduct));
+});
+document.getElementById('closeProductModal').addEventListener('click',()=>closeModal('productModal'));
+document.getElementById('cancelProductBtn').addEventListener('click',()=>closeModal('productModal'));
+document.getElementById('productForm').addEventListener('submit',saveProduct);
+
 window.addEventListener('resize', () => { if (window.innerWidth > 760) closeMobileMenu(); });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   try { await request(`${API}/auth.php?action=logout`, {method:'POST'}); } catch (error) { console.error(error); }
-  csrfToken = ''; showLogin();
+  csrfToken = ''; stopMessagingPolling(); showLogin();
 });
 
 // A navegação é montada pelo catálogo dinâmico em menu.php.
@@ -826,6 +1421,19 @@ document.getElementById('moduleSearch').addEventListener('keydown', e => { if (e
 document.getElementById('moduleForm').addEventListener('submit', saveModule);
 document.getElementById('closeModuleModal').addEventListener('click', () => closeModal('moduleModal'));
 document.getElementById('cancelModuleBtn').addEventListener('click', () => closeModal('moduleModal'));
+document.getElementById('chooseModuleIconBtn').addEventListener('click', openIconPicker);
+document.getElementById('formModuleIcon').addEventListener('input', event => setModuleIconPreview(event.target.value));
+document.getElementById('closeIconPickerModal').addEventListener('click', closeIconPicker);
+document.getElementById('cancelIconPickerBtn').addEventListener('click', closeIconPicker);
+document.getElementById('confirmIconPickerBtn').addEventListener('click', confirmIconPicker);
+document.getElementById('iconPickerSearch').addEventListener('input', renderIconPicker);
+document.getElementById('iconPickerGrid').addEventListener('click', event => {
+  const item = event.target.closest('[data-icon-value]');
+  if (!item) return;
+  setIconPickerSelected(item.dataset.iconValue);
+  renderIconPicker();
+});
+
 document.getElementById('modulesTableBody').addEventListener('click', event => {
   const edit = event.target.closest('[data-edit-module]');
   if (edit) return openEditModule(Number(edit.dataset.editModule));
@@ -867,6 +1475,21 @@ document.getElementById('usersTableBody').addEventListener('click', event => {
   if (reset) return openPasswordModal(Number(reset.dataset.resetUser), reset.dataset.userName);
   const inactive = event.target.closest('[data-inactivate-user]');
   if (inactive) return inactivateUser(Number(inactive.dataset.inactivateUser));
+});
+
+
+document.getElementById('messagesBtn').addEventListener('click', openMessagesModal);
+document.getElementById('closeMessagesModal').addEventListener('click', closeMessagesModal);
+document.getElementById('newMessageBtn').addEventListener('click', openNewMessageComposer);
+document.getElementById('cancelNewMessageBtn').addEventListener('click', () => showMessagesPane('messagesEmptyState'));
+document.getElementById('sendNewMessageBtn').addEventListener('click', sendMessageToRecipient);
+document.getElementById('messageSendForm').addEventListener('submit', sendCurrentMessage);
+document.getElementById('messageBody').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.getElementById('messageSendForm').requestSubmit(); }
+});
+document.getElementById('messagesConversationList').addEventListener('click', event => {
+  const item = event.target.closest('[data-message-user]');
+  if (item) loadMessageConversation(Number(item.dataset.messageUser));
 });
 
 checkSession();
